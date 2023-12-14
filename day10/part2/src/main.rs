@@ -10,16 +10,86 @@ fn main() {
 fn get_furthest_point_from_start(input: &Vec<Vec<char>>) -> i32 {
     let starting_point = get_starting_point(input);
     let path = get_path(input, starting_point);
-    draw_map(input.get(0).unwrap().len() * 2, input.len() * 2, &path);
-    path.len() as i32 / 2
+    let width = input.get(0).unwrap().len() * 2 + 1;
+    let height = input.len() * 2 + 1;
+    let non_surrounded = get_non_surrounded_tiles(&path, width as i32, height as i32);
+    //_draw_map(width, height, &path, &non_surrounded);
+    get_surrounded_tiles(&non_surrounded, &path, width, height)
 }
 
-fn draw_map(width: usize, height: usize, path: &Vec<(i32, i32)>) {
-    for y in 0..height {
-        for x in 0..width {
-            if path
-                .iter()
-                .any(|value| value.0 as usize == x && value.1 as usize == y)
+fn get_surrounded_tiles(
+    non_surrounded: &Vec<(i32, i32)>,
+    path: &Vec<(i32, i32)>,
+    width: usize,
+    height: usize,
+) -> i32 {
+    let mut result = 0;
+    for y in 0..(height as i32) {
+        if y % 2 == 1 {
+            for x in 0..(width as i32) {
+                if x % 2 == 1 {
+                    if !non_surrounded.iter().any(|value| value == &(x, y))
+                        && !path.iter().any(|value| value == &(x, y))
+                    {
+                        result += 1;
+                    }
+                }
+            }
+        }
+    }
+    result
+}
+
+fn get_adjacent_tiles(position: &(i32, i32), width: i32, height: i32) -> Vec<(i32, i32)> {
+    let mut result = vec![];
+    if position.0 > 0 {
+        result.push((position.0 - 1, position.1));
+    }
+    if position.0 < width - 1 {
+        result.push((position.0 + 1, position.1));
+    }
+    if position.1 > 0 {
+        result.push((position.0, position.1 - 1));
+    }
+    if position.1 < height - 1 {
+        result.push((position.0, position.1 + 1));
+    }
+    result
+}
+
+fn get_non_surrounded_tiles(path: &Vec<(i32, i32)>, width: i32, height: i32) -> Vec<(i32, i32)> {
+    let mut result: Vec<(i32, i32)> = vec![(0, 0)];
+    let mut checked_tiles = result.clone();
+    let mut current_index = 0;
+    //println!("path: {:?}", path);
+    while current_index < result.len() {
+        let adjacents = get_adjacent_tiles(result.get(current_index).unwrap(), width, height);
+        //println!("Adjacents: {:?}", adjacents);
+        for adjacent in adjacents.iter() {
+            if !checked_tiles.iter().any(|value| value == adjacent) {
+                //println!("not checked: {:?}", adjacent);
+                if !path.iter().any(|value| value == adjacent) {
+                    //println!("not in path: {:?}", adjacent);
+                    result.push(*adjacent);
+                }
+                checked_tiles.push(*adjacent);
+            }
+        }
+        current_index += 1;
+    }
+    result
+}
+
+fn _draw_map(
+    width: usize,
+    height: usize,
+    path: &Vec<(i32, i32)>,
+    non_surrounded: &Vec<(i32, i32)>,
+) {
+    for y in 0..(height as i32) {
+        for x in 0..(width as i32) {
+            if path.iter().any(|value| value == &(x, y))
+                || non_surrounded.iter().any(|value| value == &(x, y))
             {
                 print!("X");
             } else {
